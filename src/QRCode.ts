@@ -70,7 +70,7 @@ export class QRCode extends Component<HTMLDivElement> {
     private _size: number;
     private _errorCorrectionLevel: QRCodeErrorCorrectionLevel;
 
-    private _imageElementObservable = o(undefined as HTMLImageElement);
+    private _imageElementObservable = o(undefined as HTMLDivElement);
     private _cancellationToken: CancellationToken;
 
     valueAction = (newValue) => {
@@ -102,13 +102,13 @@ export class QRCode extends Component<HTMLDivElement> {
     };
 }
 
-function createQrCodeImageElementAsync(value: string, size: number, errorCorrectionLevel: QRCodeErrorCorrectionLevel, cancellationToken: CancellationToken): Promise<HTMLImageElement> {
+function createQrCodeImageElementAsync(value: string, size: number, errorCorrectionLevel: QRCodeErrorCorrectionLevel, cancellationToken: CancellationToken): Promise<HTMLDivElement> {
 
     return new Promise((resolve, reject) => {
 
         if (value) {
 
-            qrcode.toDataURL(value, async (error, url) => {
+            qrcode.toDataURL(value, { errorCorrectionLevel: errorCorrectionLevel, width: size, margin: 0 }, async (error, url) => {
 
                 if (cancellationToken.isCancellationRequested)
                     reject(new OperationCancelledError());
@@ -118,11 +118,11 @@ function createQrCodeImageElementAsync(value: string, size: number, errorCorrect
 
                 else {
 
-                    let result = createNode("img", { animator: blockAnimator }) as HTMLImageElement;
+                    let img = createNode("img", { animator: blockAnimator }) as HTMLImageElement;
 
                     try {
 
-                        await loadImageUrlAsync(result, url);
+                        await loadImageUrlAsync(img, url);
                     }
 
                     catch (e) {
@@ -134,7 +134,13 @@ function createQrCodeImageElementAsync(value: string, size: number, errorCorrect
                     if (cancellationToken.isCancellationRequested)
                         reject(new OperationCancelledError());
                     
-                    else resolve(result);
+                    else {
+
+                        let div = document.createElement("div");
+
+                        div.appendChild(img);
+                        resolve(div);
+                    }
                 }
             });
         }
