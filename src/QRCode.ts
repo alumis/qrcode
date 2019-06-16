@@ -4,6 +4,7 @@ import { r } from "@alumis/observables-i18n";
 import { CancellationToken } from "@alumis/utils/src/CancellationToken";
 import qrcode from "qrcode";
 import { OperationCancelledError } from "@alumis/utils/src/OperationCancelledError";
+import { loadImageUrlAsync } from "@alumis/utils/src/loadImageUrlAsync";
 
 export class QRCode extends Component<HTMLDivElement> {
 
@@ -107,7 +108,7 @@ function createQrCodeImageElementAsync(value: string, size: number, errorCorrect
 
         if (value) {
 
-            qrcode.toDataURL(value, function (error, url) {
+            qrcode.toDataURL(value, async (error, url) => {
 
                 if (cancellationToken.isCancellationRequested)
                     reject(new OperationCancelledError());
@@ -115,7 +116,26 @@ function createQrCodeImageElementAsync(value: string, size: number, errorCorrect
                 else if (error)
                     reject(error);
 
-                else resolve(createNode("img", { animator: blockAnimator, src: url }));
+                else {
+
+                    let result = createNode("img", { animator: blockAnimator }) as HTMLImageElement;
+
+                    try {
+
+                        await loadImageUrlAsync(result, url);
+                    }
+
+                    catch (e) {
+                        
+                        reject(cancellationToken.isCancellationRequested ? new OperationCancelledError() : e);
+                        return;
+                    }
+
+                    if (cancellationToken.isCancellationRequested)
+                        reject(new OperationCancelledError());
+                    
+                    else resolve(result);
+                }
             });
         }
 
